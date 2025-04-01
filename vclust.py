@@ -420,6 +420,214 @@ def get_parser() -> argparse.ArgumentParser:
     add_verbosity_argument(align_parser)
     add_help_argument(align_parser)
 
+    # New2all parser    
+    new2all_parser = subparsers.add_parser(
+        'new2all',
+        help='Align query sequences to a reference database',
+        formatter_class=formatter_class,
+        add_help=False,
+    )
+
+    new2all_optional = new2all_parser._action_groups.pop()
+    new2all_required = new2all_parser.add_argument_group(
+        'required arguments'
+    )
+    new2all_parser._action_groups.append(new2all_optional)
+
+    new2all_required.add_argument(
+        '-q', '--query',
+        metavar='<file>',
+        type=input_path_type,
+        dest='query_path',
+        help='Input query FASTA file (gzipped or uncompressed)',
+        required=True
+    )
+    new2all_required.add_argument(
+        '-r', '--reference',
+        metavar='<file>',
+        type=input_path_type,
+        dest='ref_path',
+        help='Input reference FASTA file (gzipped or uncompressed)',
+        required=True
+    )
+    new2all_required.add_argument(
+        '-o', '--out',
+        metavar='<file>',
+        type=pathlib.Path,
+        dest='output_path',
+        help='Alignment output filename',
+        required=True
+    )
+    new2all_parser.add_argument(
+        '-k', '--k',
+        metavar="<int>",
+        type=int,
+        default=25,
+        choices=range(15, 31),
+        help="Size of k-mer for Kmer-db [%(default)s]"
+    )
+    new2all_parser.add_argument(
+        '--min-kmers',
+        metavar="<int>",
+        type=int,
+        default=20,
+        help='Minimum number of shared k-mers between two genomes [%(default)s]'
+    )
+    new2all_parser.add_argument(
+        '--min-ident',
+        metavar="<float>",
+        type=ranged_float_type,
+        default=0.7,
+        help='Minimum sequence identity (0-1) between two genomes. Calculated '
+        'based on the shorter sequence [%(default)s]'
+    )
+    new2all_parser.add_argument(
+        '--batch-size',
+        metavar="<int>",
+        type=int,
+        default=0,
+        help='Process a multifasta file in smaller batches of <int> FASTA '
+        'sequences. This option reduces memory at the expense of speed. '
+        'By default, no batch [%(default)s]'
+    )
+    new2all_parser.add_argument(
+        '--kmers-fraction',
+        metavar="<float>",
+        type=ranged_float_type,
+        default=1.0,
+        help='Fraction of k-mers to analyze in each genome (0-1). A lower '
+        'value reduces RAM usage and speeds up processing. By default, all '
+        'k-mers [%(default)s]'
+    )
+    new2all_parser.add_argument(
+        '--max-seqs',
+        metavar="<int>",
+        type=int,
+        default=0,
+        help='Maximum number of sequences allowed to pass the prefilter per '
+        'query. Only the sequences with the highest identity to the query are '
+        'reported. This option reduces RAM usage and speeds up processing '
+        '(affects sensitivity). By default, all sequences that pass the '
+        'prefilter are reported [%(default)s]'
+    )
+    new2all_parser.add_argument(
+        '--outfmt',
+        metavar='<str>',
+        choices=ALIGN_OUTFMT.keys(),
+        dest='outfmt',
+        default='standard',
+        help='Output format [%(default)s]\n'
+        f'choices: {",".join(ALIGN_OUTFMT.keys())}'
+    )
+    new2all_parser.add_argument(
+        '--out-aln',
+        metavar='<file>',
+        type=pathlib.Path,
+        dest='aln_path',
+        help='Write alignments to the tsv <file>',
+    )
+    new2all_parser.add_argument(
+        '--out-ani',
+        dest='ani',
+        metavar='<float>',
+        type=ranged_float_type,
+        default=0,
+        help='Min. ANI to output (0-1) [%(default)s]'
+    )
+    new2all_parser.add_argument(
+        '--out-tani',
+        dest='tani',
+        metavar='<float>',
+        type=ranged_float_type,
+        default=0,
+        help='Min. tANI to output (0-1) [%(default)s]'
+    )
+    new2all_parser.add_argument(
+        '--out-gani',
+        dest='gani',
+        metavar='<float>',
+        type=ranged_float_type,
+        default=0,
+        help='Min. gANI to output (0-1) [%(default)s]'
+    )
+    new2all_parser.add_argument(
+        '--out-qcov',
+        dest='qcov',
+        metavar='<float>',
+        type=ranged_float_type,
+        default=0,
+        help='Min. query coverage (aligned fraction) to output (0-1) '
+        '[%(default)s]'
+    )
+    new2all_parser.add_argument(
+        '--out-rcov',
+        dest='rcov',
+        metavar='<float>',
+        type=ranged_float_type,
+        default=0,
+        help='Min. reference coverage (aligned fraction) to output (0-1) '
+        '[%(default)s]'
+    )
+    new2all_parser.add_argument(
+        '--mal',
+        metavar='<int>',
+        type=int,
+        default=11,
+        help='Min. anchor length [%(default)s]'
+    )       
+    new2all_parser.add_argument(
+        '--msl',
+        metavar='<int>',
+        type=int,
+        default=7,
+        help='Min. seed length [%(default)s]'
+    )
+    new2all_parser.add_argument(
+        '--mrd',
+        metavar='<int>',
+        type=int,
+        default=40,
+        help='Max. dist. between approx. matches in reference [%(default)s]'
+    )
+    new2all_parser.add_argument(
+        '--mqd',
+        metavar='<int>',
+        type=int,
+        default=40,
+        help='Max. dist. between approx. matches in query [%(default)s]'
+    )
+    new2all_parser.add_argument(
+        '--reg',
+        metavar='<int>',
+        type=int,
+        default=35,
+        help='Min. considered region length [%(default)s]'
+    )
+    new2all_parser.add_argument(
+        '--aw',
+        metavar='<int>',
+        type=int,
+        default=15,
+        help='Approx. window length [%(default)s]'
+    )
+    new2all_parser.add_argument(
+        '--am',
+        metavar='<int>',
+        type=int,
+        default=7,
+        help='Max. no. of mismatches in approx. window [%(default)s]'
+    )
+    new2all_parser.add_argument(
+        '--ar',
+        metavar='<int>',
+        type=int,
+        default=3,
+        help='Min. length of run ending approx. extension [%(default)s]'
+    )
+    add_threads_argument(new2all_parser)
+    add_verbosity_argument(new2all_parser)
+    add_help_argument(new2all_parser)
+
     # Cluster parser
     cluster_parser = subparsers.add_parser(
         'cluster',
@@ -759,6 +967,14 @@ def validate_args_cluster(args, parser) -> argparse.Namespace:
     return args
 
 
+def validate_args_new2all(args, parser) -> argparse.Namespace:
+    """Validates the arguments for the new2all command."""
+    if args.batch_size and args.input_path.is_dir():
+        parser.error('--batch-size only handles a multi-fasta file'
+            ', not a directory.')
+    return args
+
+
 def run(
         cmd: typing.List[str],
         verbosity_level: int,
@@ -1017,6 +1233,66 @@ def cmd_kmerdb_all2all(
     return cmd
 
 
+def cmd_kmerdb_new2all(
+        query_path: pathlib.Path,
+        ref_db_path: pathlib.Path,
+        txt_path: pathlib.Path,
+        outfile_new2all: pathlib.Path,
+        is_multisample_fasta: bool,
+        min_kmers: int,
+        min_ident: float,
+        max_seqs: int,
+        num_threads: int,
+        bin_path: pathlib.Path = BIN_KMERDB
+    ) -> typing.List[str]:
+    """Builds the command for Kmer-db new2all.
+
+    Args:
+        query_path (Path):
+            Path to query FastA file.
+        ref_db_path (Path):
+            Path to the reference kmer-db database (or reference kmer-db batch) file.
+        txt_path (Path):
+            Path to the output text file listing the input reference kmer-dbs.
+        outfile_new2all (Path):
+            Path to the output new2all file.
+        min_kmers (int):
+            Minimum number of shared k-mers to report in new2all output.
+        min_ident (float):
+            Minimum sequence identity of the shorter sequence.
+        max_seqs (int):
+            Maximum number of sequences allowed to pass the prefilter per query.
+        num_threads (int):
+            Number of threads to use in kmer-db.
+        bin_path (Path):
+            Path to the kmer-db executable.
+        
+    Returns:
+        list: The constructed command as a list of strings.
+
+    """
+    # Create a text file listing input FASTA files.
+    with open(txt_path, 'w') as oh:
+        oh.write(f'{query_path}\n')
+
+    cmd = [
+        f"{bin_path}", 
+        'new2all',
+        '-sparse',
+        '-min', f'num-kmers:{min_kmers}',
+        '-min', f'ani-shorter:{min_ident}',
+        "-t", f"{num_threads}",
+        f'{ref_db_path}',
+        f'{txt_path}',
+        f'{outfile_new2all}',
+    ]
+    if max_seqs > 0:
+        cmd[5:5] = ['-sample-rows', f'ani-shorter:{max_seqs}']
+    if is_multisample_fasta:
+        cmd.insert(2, '-multisample-fasta')
+    return cmd
+
+
 def cmd_kmerdb_distance(
         infile_all2all: pathlib.Path,
         outfile_distance: pathlib.Path,
@@ -1158,6 +1434,137 @@ def cmd_lzani(
         '--ar', f'{ar}',
         '--multisample-fasta',
         'true' if len(input_paths) == 1 else 'false',
+        '--out-type', 'tsv',
+        '--out-format',
+        ','.join(out_format),
+    ]
+    if filter_file:
+        cmd.extend(['--flt-kmerdb', f'{filter_file}', f'{filter_threshold}'])
+    if out_aln_path:
+        cmd.extend(['--out-alignment', f'{out_aln_path}'])
+
+    cols = [
+        ('tani', out_tani), ('gani', out_gani), ('ani', out_ani), 
+        ('qcov', out_qcov), ('rcov', out_rcov)
+    ]
+    for name, value in cols:
+        if value > 0:
+            cmd.extend(['--out-filter', f'{name}', f'{value}'])
+
+    if verbosity_level: 
+        cmd.extend(['--verbose', f'{verbosity_level + 1}'])
+
+    return cmd
+
+
+def cmd_lzani_new2all(
+        query_path: pathlib.Path,
+        ref_path: pathlib.Path,
+        txt_path: pathlib.Path,
+        output_path: pathlib.Path,
+        out_format: typing.List[str],
+        out_aln_path: pathlib.Path,
+        out_tani: float,
+        out_gani: float,
+        out_ani: float,
+        out_qcov: float,
+        out_rcov: float,
+        filter_file: pathlib.Path,
+        filter_threshold: float,
+        mal: int,
+        msl: int,
+        mrd: int,
+        mqd: int,
+        reg: int,
+        aw: int,
+        am: int,
+        ar: int,
+        num_threads: int,
+        verbosity_level: bool,
+        bin_path: pathlib.Path = BIN_LZANI
+    ) -> typing.List[str]:
+    """Builds the command for LZ-ANI.
+
+    Args:
+        query_path (Path):
+            Path to the query FASTA file.
+        ref_path (List[Path]):
+            List of paths to the input reference FASTA files.
+        txt_path (Path):
+            Path to the output text file listing the input FASTA files.
+        output_path (Path):
+            Path to the output ANI file.
+        out_format (List[str]):
+            List of LZ-ANI column names.
+        out_aln_path (Path):
+            Path to the output alignment file.
+        out_tani (float):
+            Minimum tANI to output.
+        out_gani (float):
+            Minimum gANI to output.
+        out_ani (float):
+            Minimum ANI to output.
+        out_qcov (float):
+            Minimum query coverage (aligned fraction) to output.
+        out_rcov (float):
+            Minimum reference coverage (aligned fraction) to output.
+        filter_file (Path):
+            Path to the filter file (prefilter's output).
+        filter_threshold (float):
+            Filter threshold.
+        mal (int):
+            Minimum anchor length.
+        msl (int):
+            Minimum seed length.
+        mrd (int):
+            Maximum distance between approximate matches in reference.
+        mqd (int):
+            Maximum distance between approximate matches in query.
+        reg (int):
+            Minimum considered region length.
+        aw (int):
+            Approximate window length.
+        am (int):
+            Maximum number of mismatches in approximate window.
+        ar (int):
+            Minimum length of run ending approximate extension.
+        num_threads (int):
+            Number of threads to use in lz-ani.
+        verbose (bool):
+            Whether to display verbose output.
+        bin_path (Path):
+            Path to the lz-ani executable.
+
+    Returns:
+        list: The constructed command as a list of strings.
+
+    """
+    # Create a text file listing input FASTA files.
+    with open(txt_path, 'w') as oh:
+        oh.write(f'{query_path}\n')
+        oh.write(f'{ref_path}\n')
+    shutil.copy(txt_path, "LZ_ANI_TXT")
+    shutil.copy(filter_file, "LA_ANI_FILTER")
+
+    cmd = [
+        f'{bin_path}',
+        'all2all',
+        '--in-txt',
+        f'{txt_path}',
+        '-o',
+        f'{output_path}',
+        '-t',
+        f'{num_threads}',
+        '--mal', f'{mal}',
+        '--msl', f'{msl}',
+        '--mrd', f'{mrd}',
+        '--mqd', f'{mqd}',
+        '--reg', f'{reg}',
+        '--aw', f'{aw}',
+        '--am', f'{am}',
+        '--ar', f'{ar}',
+        '--multisample-fasta',
+        'true',
         '--out-type', 'tsv',
         '--out-format',
         ','.join(out_format),
@@ -1557,6 +1964,140 @@ def handle_cluster(args, parser, logger):
     run(cmd, args.verbosity_level, logger)
 
 
+def handle_new2all(args, parser, logger) -> None:
+    """
+    Preprocesses FASTA inputs by building Kmer-db databases and computing 
+    pairwise distances between query and reference sequences. Then aligns
+    query sequences to references using LZ-ANI and outputs alignment metrics.
+
+    Args:
+        args (argparse.Namespace):
+            Parsed command-line arguments.
+        parser (argparse.ArgumentParser):
+            Argument parser for validation.
+        logger (logging.Logger):
+            Logger instance for logging messages.
+
+    """
+    validate_binary(BIN_KMERDB)
+    validate_binary(BIN_LZANI)
+    args = validate_args_new2all(args, parser)
+
+    out_dir = args.output_path.parent
+
+    with tempfile.TemporaryDirectory(dir=out_dir) as temp_dir:
+        out_dir = pathlib.Path(temp_dir)
+        logger.info(f'Temp directory created: {out_dir}')
+        txt_path = out_dir / 'ids.txt'
+
+        ### Split reference into batches
+        ref_batches = []
+
+        # Split Ref multi-fasta file.
+        if args.batch_size:
+            validate_binary(BIN_MFASTA)
+            ref_cmd = cmd_mfasta_split(
+                ref_fasta=args.ref_path, 
+                out_dir=out_dir,
+                n=args.batch_size,
+                verbosity_level=args.verbosity_level,
+                num_threads=args.num_threads,
+            )
+            run(ref_cmd, args.verbosity_level, logger)
+            ref_batches.extend(sorted([f] for f in out_dir.glob('part_*')))
+        # Do not split multi-fasta file.
+        else:
+            ref_batches.append(args.ref_path)
+
+
+        ### Build ref kmer-dbs and query to db in batches
+        num_ref_batches = len(ref_batches)
+        new2all_distance_files = []
+        for i, batch in enumerate(ref_batches):
+            logger.info(f'Processing reference batches: {i+1}/{num_ref_batches}')
+            batch_id = f'part_{i:05d}' if num_ref_batches > 1 else 'whole'
+            ref_txt_path = out_dir / f'{batch_id}_ref.txt'
+            ref_db_path = out_dir / f'{batch_id}_ref.kdb'
+
+            # Reference kmer-db build.
+            cmd = cmd_kmerdb_build(
+                input_paths=[batch],
+                txt_path=ref_txt_path,
+                db_path=ref_db_path,
+                is_multisample_fasta=True,
+                kmer_size=args.k,
+                kmers_fraction=args.kmers_fraction,
+                num_threads=args.num_threads,
+            )
+            run(cmd, args.verbosity_level, logger)
+
+            # Delete the partial FASTA file after building the corresponding
+            # partial Kmer-db database.
+            if num_ref_batches > 1:
+                batch[0].unlink()
+
+            # Run kmer-db new2all.
+            batch_new2all_input = out_dir / f'{i+1}_new2all_query.txt'
+            batch_new2all_path = out_dir / f'{i+1}_new2all.txt'
+            cmd = cmd_kmerdb_new2all(
+                query_path=args.query_path,
+                ref_db_path=ref_db_path,
+                txt_path=batch_new2all_input,
+                outfile_new2all=batch_new2all_path,
+                is_multisample_fasta=True,
+                min_kmers=args.min_kmers,
+                min_ident=args.min_ident,
+                max_seqs=args.max_seqs,
+                num_threads=args.num_threads,
+            )
+            run(cmd, args.verbosity_level, logger)
+
+            # Run kmer-db distance.
+            batch_distance_path = out_dir / f'{i+1}_distance.txt'
+            new2all_distance_files.append(batch_distance_path)
+            cmd = cmd_kmerdb_distance(
+                infile_all2all=batch_new2all_path,
+                outfile_distance=batch_distance_path,
+                min_ident=args.min_ident,
+                num_threads=args.num_threads,
+            )
+            run(cmd, args.verbosity_level, logger)
+
+        prefilter_path = out_dir / 'prefilter.txt'
+        with open(prefilter_path, 'w') as outfile:
+            for distance_file in new2all_distance_files:
+                with open(distance_file, 'r') as infile:
+                    outfile.write(infile.read())
+
+        # Run lz-ani.
+        cmd = cmd_lzani_new2all(
+            query_path=args.query_path,
+            ref_path=args.ref_path,
+            txt_path=txt_path,
+            output_path=args.output_path,
+            out_format=ALIGN_OUTFMT[args.outfmt],
+            out_aln_path=args.aln_path,
+            out_tani=args.tani,
+            out_gani=args.gani,
+            out_ani=args.ani,
+            out_qcov=args.qcov,
+            out_rcov=args.rcov,
+            filter_file=prefilter_path,
+            filter_threshold=args.min_ident,
+            mal=args.mal,
+            msl=args.msl,
+            mrd=args.mrd,
+            mqd=args.mqd,
+            reg=args.reg,
+            aw=args.aw,
+            am=args.am,
+            ar=args.ar,
+            num_threads=args.num_threads,
+            verbosity_level=args.verbosity_level,
+        )
+        run(cmd, args.verbosity_level, logger)
+
+
 class CustomLoggerFormatter(logging.Formatter):
     """Custom logging formatter with log messages with different colors"""
 
@@ -1610,6 +2151,7 @@ def main():
         'prefilter': handle_prefilter,
         'align': handle_align,
         'cluster': handle_cluster,
+        'new2all': handle_new2all
     }
 
     # Dispatch the appropriate command
